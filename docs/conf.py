@@ -120,11 +120,6 @@ html_theme_options = {
             "icon": "fab fa-github-square",
         },
         {
-            "name": "Twitter",
-            "url": "https://twitter.com/Soledad_Galli",
-            "icon": "fab fa-twitter-square",
-        },
-        {
             "name": "Blog",
             "url": "https://www.blog.trainindata.com/",
             "icon": "fab fa-blogger",
@@ -185,6 +180,7 @@ htmlhelp_basename = "feature_enginedoc"
 autodoc_default_options = {
     "members": True,
     "inherited-members": True,
+    "exclude-members": "set_output",
 }
 
 # generate autosummary even if no references
@@ -299,3 +295,4 @@ linkcode_resolve = make_linkcode_resolve(
 def setup(app):
     kwargs = {"defer data-domain":"feature-engine.readthedocs.io"}
     app.add_js_file("https://plausible.io/js/plausible.js", **kwargs)
+    app.add_js_file("js/copybutton.js")

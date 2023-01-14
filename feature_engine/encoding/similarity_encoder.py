@@ -1,5 +1,5 @@
 from difflib import SequenceMatcher
-from typing import List, Optional, Union
+from typing import Optional, Union, List
 
 import numpy as np
 import pandas as pd
@@ -102,13 +102,21 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
         categories to encode. In this case, similarity variables will be created
         only for those popular categories.
 
-    missing_values : str, default='impute'
+    missing_values: str, default='impute'
         Indicates if missing values should be ignored, raised or imputed. If 'raise' the
         transformer will return an error if the datasets to `fit` or `transform`
         contain missing values. If 'ignore', missing data will be ignored when learning
         parameters or performing the transformation. If 'impute', the transformer will
         replace missing values with an empty string, '', and then return the similarity
         measures.
+
+    keywords: dict, default=None
+        Dictionary with a set of keywords to be used to create the similarity variables.
+        The format should be: dict(feature: [keyword1, keyword2, ...]). The encoder will
+        use these keywords to create the similarity variables. The dictionary can be
+        defined for all the features to encode, or only for a subset of them. In this
+        case, for the features not specified in the dictionary, the encoder will
+        identify the categories from the data.
 
     {variables}
 
@@ -156,11 +164,27 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
        categorical variables". Machine Learning, Springer Verlag, 2018.
     .. [2] Cerda P, Varoquaux G. "Encoding high-cardinality string categorical
        variables". IEEE Transactions on Knowledge & Data Engineering, 2020.
+
+    Examples
+    --------
+
+    >>> import pandas as pd
+    >>> from feature_engine.encoding import StringSimilarityEncoder
+    >>> X = pd.DataFrame(dict(x1 = [1,2,3,4], x2 = ["dog", "dig", "dagger", "hi"]))
+    >>> sse = StringSimilarityEncoder()
+    >>> sse.fit(X)
+    >>> sse.transform(X)
+       x1    x2_dog    x2_dig  x2_dagger  x2_hi
+    0   1  1.000000  0.666667   0.444444    0.0
+    1   2  0.666667  1.000000   0.444444    0.4
+    2   3  0.444444  0.444444   1.000000    0.0
+    3   4  0.000000  0.400000   0.000000    1.0
     """
 
     def __init__(
         self,
-        top_categories: Union[None, int] = None,
+        top_categories: Optional[int] = None,
+        keywords: Optional[dict] = None,
         missing_values: str = "impute",
         variables: Union[None, int, str, List[Union[str, int]]] = None,
         ignore_format: bool = False,
@@ -174,9 +198,19 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
                 "missing_values should be one of 'raise', 'impute' or 'ignore'."
                 f" Got {missing_values!r} instead."
             )
+        if keywords and not isinstance(keywords, dict):
+            raise ValueError(
+                f"keywords should be a dictionary or None. Got {keywords!r} instead."
+            )
+        if keywords and not all(isinstance(item, list) for item in keywords.values()):
+            raise ValueError(
+                "The items in keywords should be lists."
+                f" Got {keywords.values()!r} instead."
+            )
         super().__init__(variables, ignore_format)
         self.top_categories = top_categories
         self.missing_values = missing_values
+        self.keywords = keywords
 
     def fit(self, X: pd.DataFrame, y: Optional[pd.Series] = None):
         """
@@ -198,11 +232,22 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
         X = check_X(X)
         self._check_or_select_variables(X)
         self._get_feature_names_in(X)
+        if self.keywords:
+            if not all(item in self.variables_ for item in self.keywords.keys()):
+                raise ValueError(
+                    "There are variables in keywords that are not present "
+                    "in the dataset."
+                )
         self.encoder_dict_ = {}
 
+        if self.keywords:
+            self.encoder_dict_.update(self.keywords)
+            cols_to_iterate = [x for x in self.variables_ if x not in self.keywords]
+        else:
+            cols_to_iterate = self.variables_
         if self.missing_values == "raise":
             _check_contains_na(X, self.variables_)
-            for var in self.variables_:
+            for var in cols_to_iterate:
                 self.encoder_dict_[var] = (
                     X[var]
                     .astype(str)
@@ -211,7 +256,7 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
                     .index.tolist()
                 )
         elif self.missing_values == "impute":
-            for var in self.variables_:
+            for var in cols_to_iterate:
                 self.encoder_dict_[var] = (
                     X[var]
                     .astype(str)
@@ -221,11 +266,12 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
                     .index.tolist()
                 )
         elif self.missing_values == "ignore":
-            for var in self.variables_:
+            for var in cols_to_iterate:
                 self.encoder_dict_[var] = (
                     X[var]
                     .astype(str)
                     .value_counts(dropna=True)
+                    .drop("nan", errors="ignore")
                     .head(self.top_categories)
                     .index.tolist()
                 )
@@ -273,7 +319,7 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
 
         return X.drop(self.variables_, axis=1)
 
-    def _get_new_features_name(self) -> List:
+    def _get_new_features_name(self) -> List[str]:
         """Return names of the created features."""
         feature_names = []
         for feature in self.variables_:
@@ -285,7 +331,7 @@ class StringSimilarityEncoder(CategoricalInitMixin, CategoricalMethodsMixin):
 
         return feature_names
 
-    def _add_new_feature_names(self, feature_names) -> List:
+    def _add_new_feature_names(self, feature_names: List[str]) -> List[str]:
         """Creates new features names and removes original categorical variables."""
         feature_names = feature_names + self._get_new_features_name()
         feature_names = [f for f in feature_names if f not in self.variables_]

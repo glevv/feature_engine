@@ -113,7 +113,7 @@ class SelectByTargetMeanPerformance(BaseSelector):
         the values will be sorted.
 
     strategy: str, default = 'equal_width'
-        Whether the bins should of equal width ('equal_width') or equal frequency
+        Whether the bins should be of equal width ('equal_width') or equal frequency
         ('equal_frequency').
 
     {scoring}
@@ -175,7 +175,7 @@ class SelectByTargetMeanPerformance(BaseSelector):
         strategy: str = "equal_width",
         scoring: str = "roc_auc",
         cv=3,
-        threshold: Union[int, float] = None,
+        threshold: Union[int, float, None] = None,
         regression: bool = False,
         confirm_variables: bool = False,
     ):
