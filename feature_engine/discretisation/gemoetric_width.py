@@ -28,27 +28,40 @@ from feature_engine.discretisation.base_discretiser import BaseDiscretiser
     feature_names_in_=_feature_names_in_docstring,
     n_features_in_=_n_features_in_docstring,
     fit_transform=_fit_transform_docstring,
+    power="{1/n}",
+    subindex="{i+1}"
 )
 class GeometricWidthDiscretiser(BaseDiscretiser):
     """
-    The GeometricWidthDiscretiser() divides continuous numerical variables into
-    intervals of increasing width with equal increments. Note that the
-    proportion of observations per interval may vary.
+    The `GeometricWidthDiscretiser()` divides continuous numerical variables into
+    intervals of increasing width. The width of each succeeding interval is larger than
+    the previous interval by a constant amount (cw).
 
-    Sizes (a) of n intervals will follow geometric progression
+    The constant amount is calculated as:
 
     .. math::
-        a_i+1 = a_i r^(n+i)
+        cw = (Max - Min)^{power}
 
-    The GeometricWidthDiscretiser() works only with numerical variables.
-    A list of variables can be passed as argument. Alternatively, the discretiser
-    will automatically select all numerical variables.
+    were Max and Min are the variable's maximum and minimum value, and n is the number
+    of intervals.
 
-    The GeometricWidthDiscretiser() first finds the boundaries for the intervals for
+    The sizes of the intervals themselves are calculated with a geometric progression:
+
+    .. math::
+        a_{subindex} = a_i cw
+
+    Thus, the first interval's width equals cw, the second interval's width equals
+    2 * cw, and so on.
+
+    The `GeometricWidthDiscretiser()` works only with numerical variables. A list of
+    variables can be passed as argument. Alternatively, the discretiser will
+    automatically select all numerical variables.
+
+    The `GeometricWidthDiscretiser()` first finds the boundaries for the intervals for
     each variable. Then, it transforms the variables, that is, sorts the values into
     the intervals.
 
-    More details in the :ref:`User Guide <increasing_width_discretiser>`.
+    More details in the :ref:`User Guide <geometric_width_discretiser>`.
 
     Parameters
     ----------

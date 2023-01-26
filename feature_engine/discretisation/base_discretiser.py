@@ -14,7 +14,7 @@ class BaseDiscretiser(BaseNumericalTransformer):
     """
 
     _return_object_docstring = """return_object: bool, default=False
-        Whether the the discrete variable should be returned as numeric or as
+        Whether the discrete variable should be returned as numeric or as
         object. If you would like to proceed with the engineering of the variable as if
         it was categorical, use True. Alternatively, keep the default to False.
         """.rstrip()

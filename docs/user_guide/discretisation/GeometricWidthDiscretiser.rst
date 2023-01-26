@@ -1,4 +1,4 @@
-.. _increasing_width_discretiser:
+.. _geometric_width_discretiser:
 
 .. currentmodule:: feature_engine.discretisation
 
